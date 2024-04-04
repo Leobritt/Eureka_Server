@@ -77,7 +77,6 @@ public class HealthCheckController {
     public Integer generate(@PathVariable String nameC) throws URISyntaxException {
         Random random = new Random();
         int number_generate_from_b = random.nextInt(100);
-        
 
         List<InstanceInfo> instances = eurekaClient.getInstancesById(nameC);
 
@@ -98,9 +97,10 @@ public class HealthCheckController {
 
         } catch (Exception e) {
             // TODO: handle exception
+            return -1;
 
         }
-        return 0;
+
     }
 
 }

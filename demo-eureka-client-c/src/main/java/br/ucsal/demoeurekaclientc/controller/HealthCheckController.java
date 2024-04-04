@@ -38,7 +38,13 @@ public class HealthCheckController {
     Random random = new Random();
     int number_generate_from_c = random.nextInt(100);
 
-    return number_generate_from_c;
+    try {
+      return number_generate_from_c;
+
+    } catch (Exception e) {
+      // TODO: handle exception
+      return -2;
+    }
 
   }
 }

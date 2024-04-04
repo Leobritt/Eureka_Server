@@ -76,7 +76,7 @@ public class HealthCheckController {
         }
     }
 
-    @GetMapping("/sum-return/{nameB}{nameC}")
+    @GetMapping("/sum-return/{nameB}/{nameC}")
     public Integer requestSum(@PathVariable String nameB, @PathVariable String nameC) throws URISyntaxException {
         @SuppressWarnings("unchecked")
 
@@ -94,8 +94,9 @@ public class HealthCheckController {
             return Integer.parseInt(response.body().toString());
         } catch (Exception e) {
             // TODO: handle exception
+            throw new RuntimeException(e);
+
         }
 
-        return -1;
     }
 }
