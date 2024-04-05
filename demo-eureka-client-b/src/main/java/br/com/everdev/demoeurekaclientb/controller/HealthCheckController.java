@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.URI;
@@ -20,7 +19,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 
 @RestController
@@ -55,11 +53,10 @@ public class HealthCheckController {
 
         List<InstanceInfo> instances = eurekaClient.getInstancesById(name);
 
-        Optional<InstanceInfo> instance = instances.stream().findFirst();
+        InstanceInfo instance = instances.getFirst();
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://" + instance.get().getIPAddr() + ":" + instance.get().getPort() + "/receiveCall/"
-                        + appName))
+                .uri(new URI("http://" + instance.getIPAddr() + ":" + instance.getPort() + "/receiveCall/" + appName))
                 .POST(HttpRequest.BodyPublishers.ofString(message))
                 .build();
         try {
@@ -73,34 +70,42 @@ public class HealthCheckController {
         }
     }
 
-    @GetMapping("/number-generate/{nameC}")
-    public Integer generate(@PathVariable String nameC) throws URISyntaxException {
+    @GetMapping("/GenerationOfNumberB/{nameC}")
+    public String GenerationOfNumberB(@PathVariable String nameC) throws URISyntaxException {
+
+        // Generate a random number
         Random random = new Random();
-        int number_generate_from_b = random.nextInt(100);
+        // Generate a random number between 0 and 100
+        int valueGenerationOfNumberB = random.nextInt(100);
+
+        // Getting the list of instances of service C
 
         List<InstanceInfo> instances = eurekaClient.getInstancesById(nameC);
 
+        // Getting the first instance from the list
         InstanceInfo instance = instances.getFirst();
 
+        // Creating the request for service C
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://" + instance.getIPAddr() + ":" + instance.getPort() + "/random-number/" + nameC))
+                .uri(new URI("http://" + instance.getIPAddr() + ":" + instance.getPort() + "/GenerationOfNumberC/"
+                        + appName))
                 .GET()
                 .build();
-
+        // Making the request
         try {
+            int valueGenerationOfNumberC = 0;
             HttpResponse<String> response = HttpClient.newBuilder().build().send(request,
                     HttpResponse.BodyHandlers.ofString());
-
-            int number_generate_from_c;
-            number_generate_from_c = Integer.parseInt(response.body());
-            return number_generate_from_b + number_generate_from_c;
-
-        } catch (Exception e) {
-            // TODO: handle exception
-            return -1;
-
+            valueGenerationOfNumberC = Integer.parseInt(response.body());
+            return String.valueOf(valueGenerationOfNumberB + valueGenerationOfNumberC);
+            // Exception handling
+        } catch (IOException e) {
+            System.err.println(e.getLocalizedMessage());
+        } catch (InterruptedException e) {
+            System.err.println(e.getLocalizedMessage());
         }
 
-    }
+        return String.valueOf(-2);
 
+    }
 }

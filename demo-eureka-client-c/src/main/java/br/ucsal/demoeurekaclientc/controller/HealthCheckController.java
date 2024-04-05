@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.URI;
@@ -20,31 +19,66 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
-
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class HealthCheckController {
+
   @Autowired
   @Lazy
   private EurekaClient eurekaClient;
 
-  @GetMapping("/random-number")
-  public Integer numeroAleatorio() {
-    Random random = new Random();
-    int number_generate_from_c = random.nextInt(100);
+  @Value("${spring.application.name}")
+  private String appName;
 
+  @GetMapping("/health")
+  public String healthy() {
+    return "Estou vivo e bem! Sou a app " + appName + " - " + LocalDateTime.now();
+  }
+
+  @GetMapping("/discover")
+  public String discover() {
+    Applications otherApps = eurekaClient.getApplications();
+    return otherApps.getRegisteredApplications().toString();
+  }
+
+  @PostMapping("/receiveCall/{name}")
+  public String receiveCall(@PathVariable String name, @RequestBody String message) {
+    return message + "\nOlá " + name + ". Aqui é " + appName + " e recebi sua mensagem.";
+  }
+
+  @GetMapping("/makeCall/{name}")
+  public String makeCall(@PathVariable String name) throws URISyntaxException {
+    String message = "Olá, tem alguem ai??";
+
+    List<InstanceInfo> instances = eurekaClient.getInstancesById(name);
+
+    InstanceInfo instance = instances.getFirst();
+
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(new URI("http://" + instance.getIPAddr() + ":" + instance.getPort() + "/receiveCall/" + appName))
+        .POST(HttpRequest.BodyPublishers.ofString(message))
+        .build();
     try {
-      return number_generate_from_c;
-
-    } catch (Exception e) {
-      // TODO: handle exception
-      return -2;
+      HttpResponse<String> response = HttpClient.newBuilder().build().send(request,
+          HttpResponse.BodyHandlers.ofString());
+      return response.body().toString();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
     }
+  }
+
+  @GetMapping("/GenerationOfNumberC/{nameB}")
+  public int GenerationOfNumberC() throws URISyntaxException {
+    // Generate a random number
+    Random random = new Random();
+    // Generate a random number between 0 and 100
+    int valueGenerationOfNumberC = random.nextInt(100);
+
+    return valueGenerationOfNumberC;
 
   }
+
 }

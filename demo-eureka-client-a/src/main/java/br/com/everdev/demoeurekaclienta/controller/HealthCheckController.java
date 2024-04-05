@@ -1,16 +1,17 @@
 package br.com.everdev.demoeurekaclienta.controller;
 
-import com.ctc.wstx.shaded.msv_core.util.Uri;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.discovery.shared.Applications;
+
+import ch.qos.logback.core.net.SyslogOutputStream;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.service.annotation.PatchExchange;
 
 import java.io.IOException;
 import java.net.URI;
@@ -21,14 +22,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 public class HealthCheckController {
-
     @Autowired
     @Lazy
     private EurekaClient eurekaClient;
@@ -38,7 +35,7 @@ public class HealthCheckController {
 
     @GetMapping("/health")
     public String healthy() {
-        return "Estpu vivo e bem! Sou a app " + appName + " - " + LocalDateTime.now();
+        return "Estou vivo e bem! Sou a app " + appName + " - " + LocalDateTime.now();
     }
 
     @GetMapping("/discover")
@@ -58,11 +55,10 @@ public class HealthCheckController {
 
         List<InstanceInfo> instances = eurekaClient.getInstancesById(name);
 
-        Optional<InstanceInfo> instance = instances.stream().findFirst();
+        InstanceInfo instance = instances.getFirst();
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://" + instance.get().getIPAddr() + ":" + instance.get().getPort() + "/receiveCall/"
-                        + appName))
+                .uri(new URI("http://" + instance.getIPAddr() + ":" + instance.getPort() + "/receiveCall/" + appName))
                 .POST(HttpRequest.BodyPublishers.ofString(message))
                 .build();
         try {
@@ -76,27 +72,37 @@ public class HealthCheckController {
         }
     }
 
-    @GetMapping("/sum-return/{nameB}/{nameC}")
-    public Integer requestSum(@PathVariable String nameB, @PathVariable String nameC) throws URISyntaxException {
-        @SuppressWarnings("unchecked")
+    @GetMapping("/returnOfTheSum/{nameB}/{nameC}")
+    public String returnOfTheSum(@PathVariable String nameB, @PathVariable String nameC) throws URISyntaxException {
 
+        // Getting the list of instances of service B
         List<InstanceInfo> instances = eurekaClient.getInstancesById(nameB);
 
+        // Getting the first instance from the list
         InstanceInfo instance = instances.getFirst();
+
+        // Creating the request for service B
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://" + instance.getIPAddr() + ":" + instance.getPort() + "/number-generate/" + nameC))
+                .uri(new URI(
+                        "http://" + instance.getIPAddr() + ":" + instance.getPort() + "/GenerationOfNumberB/" + nameC))
                 .GET()
                 .build();
 
+        // Making the request
         try {
+
             HttpResponse<String> response = HttpClient.newBuilder().build().send(request,
                     HttpResponse.BodyHandlers.ofString());
-            return Integer.parseInt(response.body().toString());
-        } catch (Exception e) {
-            // TODO: handle exception
-            throw new RuntimeException(e);
+            String responseBody = response.body();
+            return responseBody;
 
+            // Exception handling
+        } catch (IOException e) {
+            System.err.println(e.getLocalizedMessage());
+        } catch (InterruptedException e) {
+            System.err.println(e.getLocalizedMessage());
         }
-
+        return String.valueOf(-1);
     }
+
 }
